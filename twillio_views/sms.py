@@ -31,17 +31,13 @@ def sms_request(request):
                 return HttpResponse('<Response><Message>Unable to recognize your destination. Please revise the address and try again.</Message></Response>', content_type='text/xml')
             origin = google_maps_json['routes'][0]['legs'][0]['start_address']
             destination = google_maps_json['routes'][0]['legs'][0]['end_address']
-            twiml_response = '<Response><Message> Directions from ' + origin + ' to ' + destination + ' provided courtesy of Google Maps and the smsRouting project.</Message>'
+            context = '<Message> Directions from ' + origin + ' to ' + destination + ' provided courtesy of Google Maps and the smsRouting project.</Message>'
             steps = google_maps_json['routes'][0]['legs'][0]['steps']
-            #consider making into 1 message for $$ saving.
-            for i in range(0,len(steps)):
-                instructions = strip_tags(steps[i]['html_instructions'])
-                distance = steps[i]['distance']['text']
-                duration = steps[i]['duration']['text']
-                twiml_response = twiml_response + '<Message>' + str(i+1) +'. ' + instructions + ' for '+ distance + ', ' + duration + '.' + '</Message>'
-                # becauase twillio's API is too slow and mis-orders the text responses sometimes.
-                time.sleep(.01)
-            twiml_response = twiml_response + '</Response>'
+            directions = '<Message>'
+            for i in range(0, len(steps)):
+                directions = directions + str(i+1) + '. ' + get_formatted_instruction(steps[i])
+            directions = directions + '</Message>'
+            twiml_response = '<Response>' + context + directions + '</Response>'
             return HttpResponse(twiml_response, content_type='text/xml')
         else:
             #handle specific error codes later
@@ -61,5 +57,13 @@ def valid_mode(text):
 def is_valid_request(text):
     return ('to' in text) and ('from' in text)
 
+def get_formatted_instruction(data):
+    instruction = strip_tags(data['html_instructions'])
+    distance = data['distance']['text']
+    duration = data['duration']['text']
+    if 'Destination' in instruction:
+        return instruction.split('Destination')[0] + ' in '+ distance + ', ' + duration + '. ' + 'Destination' + instruction.split('Destination')[1] + '.'
+    else:
+        return instruction + ' in ' + distance + ', ' + duration + '. \n'
 
 
