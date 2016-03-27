@@ -29,8 +29,8 @@ def sms_request(request):
                 return HttpResponse('<Response><Message>Unable to recognize your origin. Please revise the address and try again.</Message></Response>', content_type='text/xml')
             if google_maps_json['geocoded_waypoints'][1]['geocoder_status'] != "OK":
                 return HttpResponse('<Response><Message>Unable to recognize your destination. Please revise the address and try again.</Message></Response>', content_type='text/xml')
-            origin = 'a'#google_maps_json['routes'][0]['legs']['start_address']
-            destination = 'b'#google_maps_json['routes'][0]['legs']['end_address']
+            origin = google_maps_json['routes'][0]['legs'][0]['start_address']
+            destination = google_maps_json['routes'][0]['legs'][0]['end_address']
             twiml_response = '<Response><Message> Directions from ' + origin + ' to ' + destination + ' provided courtesy of Google Maps and the smsRouting project.</Message>'
             steps = google_maps_json['routes'][0]['legs'][0]['steps']
             #consider making into 1 message for $$ saving.
