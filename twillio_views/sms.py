@@ -16,7 +16,7 @@ def sms_request(request):
         if 'mode' in text:
             requested_mode = get_keyword_arg(text, 'mode')
             if not valid_mode(requested_mode):
-                return HttpResponse('<Response><Message>Invalid mode requested. Please send request again using driving, walking, bicycling, or tansit as the mode.</Message></Response>', content_type='text/xml')
+                return HttpResponse('<Response><Message>Invalid mode requested. Please send request again using driving, walking, or bicycling as the mode. Unfortunately transit is not yet available.</Message></Response>', content_type='text/xml')
             optional_mode_query = '&mode=' + requested_mode
         #need to handle situation in which no from next.
         from_address_query = get_keyword_arg(text, 'from').replace(' ','+')
@@ -27,7 +27,10 @@ def sms_request(request):
         steps = google_maps_response.json()['routes'][0]['legs'][0]['steps']
         #consider making into 1 message for $$ saving.
         for i in range(0,len(steps)):
-            twiml_response = twiml_response + '<Message>' + str(i+1) +'. ' + strip_tags(steps[i]['html_instructions']) + '</Message>'
+            instructions = strip_tags(steps[i]['html_instructions'])
+            distance = steps[i]['distance']['text']
+            duration = steps[i]['duration']['text']
+            twiml_response = twiml_response + '<Message>' + str(i+1) +'. ' + instructions + ' for '+ distance + ', ' + duration + '.' + '</Message>'
             # becauase twillio's API is too slow and mis-orders the text responses sometimes.
             time.sleep(.01)
         twiml_response = twiml_response + '</Response>'
@@ -42,7 +45,7 @@ def get_keyword_arg(text, keyword):
     return text.strip()
 
 def valid_mode(text):
-    return (text == 'driving') or (text == 'walking') or (text == 'bicycling') or (text=='transit')
+    return (text == 'driving') or (text == 'walking') or (text == 'bicycling')
 
 def is_valid_request(text):
     return ('to' in text) and ('from' in text)
