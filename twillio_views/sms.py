@@ -7,6 +7,7 @@ import time
 GOOGLE_API_KEY = 'AIzaSyCOSaYoVFlZK67ox5gDTMLtHFsm221gEAE'
 KEYWORDS = ['mode', 'to', 'from']
 
+#need to fix this too so don't need csrf expemtion
 @csrf_exempt
 def sms_request(request):
     text = request.POST.get('Body', '').lower()
@@ -21,16 +22,18 @@ def sms_request(request):
         from_address_query = get_keyword_arg(text, 'from').replace(' ','+')
         to_address_query = get_keyword_arg(text, 'to').replace(' ','+')
         #also handle google api errors here.
-        google_maps_response = requests.get('https://maps.googleapis.com/maps/api/directions/json?origin=' + from_address + '&destination=' + to_address+ optional_mode_query + '&key=' + GOOGLE_API_KEY)
+        google_maps_response = requests.get('https://maps.googleapis.com/maps/api/directions/json?origin=' + from_address_query + '&destination=' + to_address_query + optional_mode_query + '&key=' + GOOGLE_API_KEY)
         twiml_response = '<Response>'
         steps = google_maps_response.json()['routes'][0]['legs'][0]['steps']
+        #consider making into 1 message for $$ saving.
         for i in range(0,len(steps)):
             twiml_response = twiml_response + '<Message>' + str(i+1) +'. ' + strip_tags(steps[i]['html_instructions']) + '</Message>'
+            # becauase twillio's API is too slow and mis-orders the text responses sometimes.
             time.sleep(.01)
         twiml_response = twiml_response + '</Response>'
         return HttpResponse(twiml_response, content_type='text/xml')
     else:
-        return HttpResponse('<Response><Message> Please send valid message</Message></Response>', content_type='text/xml')
+        return HttpResponse('<Response><Message> Please send valid message. All messages must be of the format from (origin address) to (destination address). Optionally you may inlude mode (type of directions) too.</Message></Response>', content_type='text/xml')
 
 def get_keyword_arg(text, keyword):
     text = text.split(keyword)[1]
